@@ -56,7 +56,7 @@ A cohort-based customer retention analysis was done using Python.
 - The percentage of retained customers was plotted across subsequent months.
 - A heatmap was generated to visually represent customer loyalty over time.
 
-_You can find the heatmap image in the repository (`customer_retention_heatmap.png`)._
+_You can find the heatmap image in the repository (`VISUALIZATION.pdf')._
 
 ---
 
