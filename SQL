@@ -1,0 +1,213 @@
+SQL queries for Task 1:
+
+1.1 ➔ Total Number of Orders by Status
+SELECT 
+    order_status, 
+    COUNT(order_id) AS total_orders
+FROM 
+    customer_orders
+GROUP BY 
+    order_status
+ORDER BY 
+    total_orders DESC;
+
+1.2 ➔ Total Sales Revenue (Completed Orders)
+SELECT 
+    SUM(total_amount) AS total_sales_revenue
+FROM 
+    customer_orders
+WHERE 
+    order_status = 'Completed';
+
+1.3 ➔ Monthly Trend of Sales
+SELECT 
+    DATE_FORMAT(order_date, '%Y-%m') AS month, 
+    SUM(total_amount) AS monthly_sales
+FROM 
+    customer_orders
+WHERE 
+    order_status = 'Completed'
+GROUP BY 
+    month
+ORDER BY 
+    month ASC;
+
+
+1.4 ➔ Order Fulfillment Rate (Completed vs Total Orders)
+SELECT 
+    (SUM(CASE WHEN order_status = 'Completed' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS fulfillment_rate_percentage
+FROM 
+    customer_orders;
+
+SQL queries for Task 2:
+
+2.1 ➔ Find Customers Who Ordered More Than Once (Repeat Customers)
+SELECT 
+    customer_id,
+    COUNT(order_id) AS total_orders
+FROM 
+    customer_orders
+GROUP BY 
+    customer_id
+HAVING 
+    COUNT(order_id) > 1
+ORDER BY 
+    total_orders DESC;
+
+
+2.2 ➔ Customer Segmentation Based on Number of Orders
+SELECT 
+    CASE 
+        WHEN COUNT(order_id) = 1 THEN 'One-time Buyer'
+        WHEN COUNT(order_id) BETWEEN 2 AND 5 THEN 'Repeat Buyer (2-5 orders)'
+        ELSE 'Loyal Customer (>5 orders)'
+    END AS customer_segment,
+    COUNT(DISTINCT customer_id) AS number_of_customers
+FROM 
+    customer_orders
+GROUP BY 
+    customer_segment;
+
+
+2.3 ➔ New vs Returning Customers Each Month
+WITH customer_first_order AS (
+    SELECT 
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM 
+        customer_orders
+    GROUP BY 
+        customer_id
+)
+
+SELECT 
+    DATE_FORMAT(o.order_date, '%Y-%m') AS month,
+    SUM(CASE WHEN o.order_date = c.first_order_date THEN 1 ELSE 0 END) AS new_customers,
+    SUM(CASE WHEN o.order_date > c.first_order_date THEN 1 ELSE 0 END) AS returning_customers
+FROM 
+    customer_orders o
+JOIN 
+    customer_first_order c
+ON 
+    o.customer_id = c.customer_id
+GROUP BY 
+    month
+ORDER BY 
+    month;
+
+
+2.4 ➔ Monthly Active Customers
+
+SELECT 
+    DATE_FORMAT(order_date, '%Y-%m') AS month,
+    COUNT(DISTINCT customer_id) AS active_customers
+FROM 
+    customer_orders
+GROUP BY 
+    month
+ORDER BY 
+    month;
+
+SQL queries for Task 3:
+
+3.1 ➔ Total Payments by Status
+SELECT 
+    payment_status, 
+    COUNT(payment_id) AS total_transactions,
+    SUM(payment_amount) AS total_amount
+FROM 
+    payments
+GROUP BY 
+    payment_status;
+
+
+3.2 ➔ Monthly Payment Success and Failure Trends
+SELECT 
+    DATE_FORMAT(payment_date, '%Y-%m') AS month,
+    SUM(CASE WHEN payment_status = 'Success' THEN 1 ELSE 0 END) AS successful_payments,
+    SUM(CASE WHEN payment_status != 'Success' THEN 1 ELSE 0 END) AS failed_payments
+FROM 
+    payments
+GROUP BY 
+    month
+ORDER BY 
+    month;
+
+
+3.3 ➔ Failure Rate Percentage
+SELECT 
+    ROUND(
+        SUM(CASE WHEN payment_status != 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+        2
+    ) AS failure_rate_percent
+FROM 
+    payments;
+
+
+3.4 ➔ Orders Without Successful Payments
+SELECT 
+    co.order_id,
+    co.customer_id,
+    co.total_amount,
+    p.payment_status
+FROM 
+    customer_orders co
+LEFT JOIN 
+    payments p ON co.order_id = p.order_id
+WHERE 
+    p.payment_status != 'Success' OR p.payment_status IS NULL;
+
+SQL queries for Task 4:
+
+4.1 ➔ Full Order Summary with Payment Info
+SELECT 
+    o.order_id,
+    o.customer_id,
+    o.order_date,
+    o.order_status,
+    o.total_amount AS order_amount,
+    p.payment_id,
+    p.payment_date,
+    p.payment_amount,
+    p.payment_status
+FROM 
+    customer_orders o
+LEFT JOIN 
+    payments p ON o.order_id = p.order_id
+ORDER BY 
+    o.order_date;
+
+
+4.2 ➔ Key Metrics Overview
+
+A. Total Orders and Revenue
+
+SELECT 
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(total_amount) AS total_revenue
+FROM 
+    customer_orders
+WHERE 
+    order_status = 'Completed';
+
+B. Total Payments and Success Rate
+
+SELECT 
+    COUNT(*) AS total_payments,
+    SUM(CASE WHEN payment_status = 'Success' THEN 1 ELSE 0 END) AS successful_payments,
+    ROUND(
+        SUM(CASE WHEN payment_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2
+    ) AS success_rate_percentage
+FROM 
+    payments;
+
+C. Average Payment Delay (in days)
+
+SELECT 
+    ROUND(AVG(DATEDIFF(p.payment_date, o.order_date)), 2) AS avg_payment_delay_days
+FROM 
+    customer_orders o
+JOIN 
+    payments p ON o.order_id = p.order_id
+WHERE 
+    p.payment_status = 'Success';
